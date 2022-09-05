@@ -1,0 +1,62 @@
+<MainWindow>:
+    id: main_win
+
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: main_win.size[0]/5, main_win.size[1]/4
+        spacing: 20
+
+        MDBoxLayout:
+            orientation: "horizontal"
+
+            MDLabel:
+                text: "YouTube URL:"
+                size_hint_x: .4
+                size_hint_y: None
+            MDTextField:
+                id: video_url
+                mode: "round"
+                hint_text: "Video URL"
+                size_hint_y: None
+                helper_text: "URL cannot be empty!"
+                helper_text_mode: "on_error"
+                on_text: self.error = False
+
+        MDBoxLayout:
+            orientation: "horizontal"
+
+            MDLabel:
+                text: "Download Path:"
+                size_hint_x: .4
+                size_hint_y: None
+            MDTextField:
+                id: download_path
+                mode: "round"
+                size_hint_y: None
+                hint_text: "Select Path"
+                helper_text: "Please Choose Path"
+                helper_text_mode: "on_error"
+                on_focus:
+                    root.file_manager_open()
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: 20
+
+            MDRaisedButton:
+                text: "Download Video"
+                size_hint_x: .5
+                on_release:
+                    root.download_video()
+
+            MDRaisedButton:
+                text: "Download Audio"
+                size_hint_x: .5
+                on_release:
+                    root.download_audio()
+
+        MDRaisedButton:
+            text: "Exit"
+            md_bg_color: 1, 0, 0, 1
+            size_hint_x: 1
+            on_release: app.stop()
