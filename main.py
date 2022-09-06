@@ -16,7 +16,9 @@ class MainWindow(MDBoxLayout):
         super().__init__(**kwargs)
         self.path = None
         self.dialog = None
-        self.progress = 0
+        self.progress = MDDialog(
+            title="Downloading....!",
+        )
         self.file_manager = MDFileManager(
             exit_manager=self.exit_manager,
             select_path=self.select_path,
@@ -35,9 +37,11 @@ class MainWindow(MDBoxLayout):
         self.file_manager.close()
 
     def download_video(self):
+        self.progress.open()
         Clock.schedule_once(self.vid_download_background_process, 2)
 
     def download_audio(self):
+        self.progress.open()
         Clock.schedule_once(self.aud_download_background_process, 2)
 
     def vid_download_background_process(self, *args):
@@ -50,6 +54,7 @@ class MainWindow(MDBoxLayout):
             try:
                 video_link = YouTube(url)
             except Exception as e:
+                self.close_process_dialog()
                 self.dialog = MDDialog(
                     title="Error!",
                     text=f"{e}",
@@ -81,6 +86,7 @@ class MainWindow(MDBoxLayout):
 
                     shutil.move(name, self.path)
                 except Exception as e:
+                    self.close_process_dialog()
                     self.dialog = MDDialog(
                         title="Error!",
                         text=f"{e}",
@@ -96,6 +102,7 @@ class MainWindow(MDBoxLayout):
                     )
                     self.dialog.open()
                 else:
+                    self.close_process_dialog()
                     self.dialog = MDDialog(
                         title="Completed",
                         text="Download complete!",
@@ -121,6 +128,7 @@ class MainWindow(MDBoxLayout):
             try:
                 video_link = YouTube(url)
             except Exception as e:
+                self.close_process_dialog()
                 self.dialog = MDDialog(
                     title="Error!",
                     text=f"{e}",
@@ -154,6 +162,7 @@ class MainWindow(MDBoxLayout):
 
                     shutil.move(mp3, self.path)
                 except Exception as e:
+                    self.close_process_dialog()
                     self.dialog = MDDialog(
                         title="Error!",
                         text=f"{e}",
@@ -169,6 +178,7 @@ class MainWindow(MDBoxLayout):
                     )
                     self.dialog.open()
                 else:
+                    self.close_process_dialog()
                     self.dialog = MDDialog(
                         title="Completed",
                         text="Download complete!",
@@ -186,6 +196,9 @@ class MainWindow(MDBoxLayout):
 
     def close_dialog(self, *args):
         self.dialog.dismiss(force=True)
+
+    def close_process_dialog(self, *args):
+        self.progress.dismiss(force=True)
 
 class MainApp(MDApp):
     def __init__(self):
