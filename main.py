@@ -1,5 +1,6 @@
 from kivy.metrics import sp
 from kivy.clock import Clock
+from kivymd.toast import toast
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDIconButton
 from kivymd.uix.dialog import MDDialog
@@ -63,24 +64,52 @@ class MainWindow(MDBoxLayout):
                 )
                 self.dialog.open()
             else:
-                quality = video_link.streams.get_highest_resolution()
-                video = quality.download()
+                try:
+                    quality = video_link.streams.get_highest_resolution()
+                    video = quality.download()
 
-                shutil.move(video, self.path)
-                self.dialog = MDDialog(
-                    title="Completed",
-                    text="Download complete!",
-                    buttons=[
-                        MDIconButton(
-                            icon="check",
-                            icon_size=sp(24),
-                            theme_icon_color="Custom",
-                            icon_color=(0, 1, 0, 1),
-                            on_release=self.close_dialog
-                        )
-                    ]
-                )
-                self.dialog.open()
+                    base, ext = os.path.split(video)
+
+                    name = ext.replace(" ", "")
+                    os.rename(video, name)
+
+                    if os.path.isdir(self.path + '/' + name):
+                        shutil.rmtree(self.path + '/' + name)
+
+                    elif os.path.isfile(self.path + '/' + name):
+                        os.remove(self.path + '/' + name)
+
+                    shutil.move(name, self.path)
+                except Exception as e:
+                    self.dialog = MDDialog(
+                        title="Error!",
+                        text=f"{e}",
+                        buttons=[
+                            MDIconButton(
+                                icon="check",
+                                icon_size=sp(24),
+                                theme_icon_color="Custom",
+                                icon_color=(0, 1, 0, 1),
+                                on_release=self.close_dialog
+                            )
+                        ]
+                    )
+                    self.dialog.open()
+                else:
+                    self.dialog = MDDialog(
+                        title="Completed",
+                        text="Download complete!",
+                        buttons=[
+                            MDIconButton(
+                                icon="check",
+                                icon_size=sp(24),
+                                theme_icon_color="Custom",
+                                icon_color=(0, 1, 0, 1),
+                                on_release=self.close_dialog
+                            )
+                        ]
+                    )
+                    self.dialog.open()
 
     def aud_download_background_process(self, *args):
         if self.ids.video_url.text == "":
@@ -90,7 +119,7 @@ class MainWindow(MDBoxLayout):
         else:
             url = self.ids.video_url.text
             try:
-                video_link = YouTube(url, on_progress_callback=self.progress_function)
+                video_link = YouTube(url)
             except Exception as e:
                 self.dialog = MDDialog(
                     title="Error!",
@@ -106,32 +135,54 @@ class MainWindow(MDBoxLayout):
                 )
                 self.dialog.open()
             else:
-                quality = video_link.streams.get_audio_only()
-                video = quality.download()
+                try:
+                    quality = video_link.streams.get_audio_only()
+                    video = quality.download()
 
-                base, ext = os.path.split(video)
+                    base, ext = os.path.split(video)
 
-                tmp = ext.split(" ")
-                name = "".join(tmp)
-                name, ext = name.split(".")
-                mp3 = name + ".mp3"
-                os.rename(video, mp3)
+                    tmp = ext.replace(" ", "")
+                    name, ext = tmp.split(".")
+                    mp3 = name + ".mp3"
+                    os.rename(video, mp3)
 
-                shutil.move(mp3, self.path)
-                self.dialog = MDDialog(
-                    title="Completed",
-                    text="Download complete!",
-                    buttons=[
-                        MDIconButton(
-                            icon="check",
-                            icon_size=sp(24),
-                            theme_icon_color="Custom",
-                            icon_color=(0, 1, 0, 1),
-                            on_release=self.close_dialog
-                        )
-                    ]
-                )
-                self.dialog.open()
+                    if os.path.isdir(self.path + '/' + mp3):
+                        shutil.rmtree(self.path + '/' + mp3)
+
+                    elif os.path.isfile(self.path + '/' + mp3):
+                        os.remove(self.path + '/' + mp3)
+
+                    shutil.move(mp3, self.path)
+                except Exception as e:
+                    self.dialog = MDDialog(
+                        title="Error!",
+                        text=f"{e}",
+                        buttons=[
+                            MDIconButton(
+                                icon="check",
+                                icon_size=sp(24),
+                                theme_icon_color="Custom",
+                                icon_color=(0, 1, 0, 1),
+                                on_release=self.close_dialog
+                            )
+                        ]
+                    )
+                    self.dialog.open()
+                else:
+                    self.dialog = MDDialog(
+                        title="Completed",
+                        text="Download complete!",
+                        buttons=[
+                            MDIconButton(
+                                icon="check",
+                                icon_size=sp(24),
+                                theme_icon_color="Custom",
+                                icon_color=(0, 1, 0, 1),
+                                on_release=self.close_dialog
+                            )
+                        ]
+                    )
+                    self.dialog.open()
 
     def close_dialog(self, *args):
         self.dialog.dismiss(force=True)
