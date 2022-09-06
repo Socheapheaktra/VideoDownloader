@@ -1,8 +1,11 @@
+import platform
+import subprocess
+
 from kivy.metrics import sp
 from kivy.clock import Clock
 from kivymd.toast import toast
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDIconButton
+from kivymd.uix.button import MDIconButton, MDRaisedButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.app import MDApp
@@ -102,16 +105,23 @@ class MainWindow(MDBoxLayout):
                     )
                     self.dialog.open()
                 else:
+                    file_name = os.path.split(name)
+                    source = file_name[1]
                     self.close_process_dialog()
                     self.dialog = MDDialog(
                         title="Completed",
                         text="Download complete!",
                         buttons=[
-                            MDIconButton(
-                                icon="check",
-                                icon_size=sp(24),
-                                theme_icon_color="Custom",
-                                icon_color=(0, 1, 0, 1),
+                            MDRaisedButton(
+                                text="Open",
+                                on_release=lambda x: self.open_file(source)
+                            ),
+                            MDRaisedButton(
+                                text="Show in folder",
+                                on_release=lambda x: self.open_file_location()
+                            ),
+                            MDRaisedButton(
+                                text="Close",
                                 on_release=self.close_dialog
                             )
                         ]
@@ -178,21 +188,46 @@ class MainWindow(MDBoxLayout):
                     )
                     self.dialog.open()
                 else:
+                    file_name = os.path.split(mp3)
+                    source = file_name[1]
                     self.close_process_dialog()
                     self.dialog = MDDialog(
                         title="Completed",
                         text="Download complete!",
                         buttons=[
-                            MDIconButton(
-                                icon="check",
-                                icon_size=sp(24),
-                                theme_icon_color="Custom",
-                                icon_color=(0, 1, 0, 1),
+                            MDRaisedButton(
+                                text="Open",
+                                on_release=lambda x: self.open_file(source)
+                            ),
+                            MDRaisedButton(
+                                text="Show in Folder!",
+                                on_release=lambda x: self.open_file_location()
+                            ),
+                            MDRaisedButton(
+                                text="Close",
                                 on_release=self.close_dialog
                             )
                         ]
                     )
                     self.dialog.open()
+
+    def open_file(self, source):
+        self.close_dialog()
+        if platform.system() == "Windows":
+            os.startfile(f"{self.path}/{source}")
+        elif platform.system() == "Darwin":
+            subprocess.Popen(["open", f"{self.path}/{source}"])
+        else:
+            subprocess.Popen(["xdg-open", f"{self.path}/{source}"])
+
+    def open_file_location(self):
+        self.close_dialog()
+        if platform.system() == "Windows":
+            os.startfile(self.path)
+        elif platform.system() == "Darwin":
+            subprocess.Popen(["open", self.path])
+        else:
+            subprocess.Popen(["xdg-open", self.path])
 
     def close_dialog(self, *args):
         self.dialog.dismiss(force=True)
@@ -206,6 +241,7 @@ class MainApp(MDApp):
         self.title = "Video Downloader"
 
     def build(self):
+        self.theme_cls.primary_palette = "Indigo"
         return MainWindow()
 
 if __name__ == '__main__':
