@@ -1,66 +1,183 @@
+#: import AsyncImage kivy.uix.image
+<CustomCard>:
+    orientation: "vertical"
+    style: "elevated"
+    elevation: 20
+    padding: 50, 10
+
+<DetailCard>:
+    padding: 50, 50
+    elevation: 30
+
+    MDLabel:
+        text: root.title
+        font_name: 'assets/fonts/Khmer-Black.ttf'
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        spacing: 50
+
+        MDBoxLayout:
+            AsyncImage:
+                source: root.image_url
+
+        MDBoxLayout:
+            orientation: "vertical"
+            spacing: 5
+
+            MDLabel:
+                text: "Author: " + root.author
+            MDLabel:
+                text: "Views: " + root.views
+            MDLabel:
+                text: "Publish: " + root.publish_date
+
+<VideoCard>:
+    padding: 50, 50
+    elevation: 30
+    spacing: 20
+
+    MDLabel:
+        text: root.title
+        font_name: 'assets/fonts/Khmer-Black.ttf'
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        spacing: 50
+
+        MDBoxLayout:
+            size_hint_x: .4
+            AsyncImage:
+                source: root.image_url
+                size_hint: 1, 1
+
+        MDBoxLayout:
+            orientation: "vertical"
+            spacing: 5
+
+            MDLabel:
+                text: "Author: " + root.author
+            MDLabel:
+                text: "Views: " + root.views
+            MDLabel:
+                text: "Publish: " + root.publish_date
+
+    MDRaisedButton:
+        text: "Download"
+        on_release:
+            app.goto_download(root.obj)
+
+<RV>:
+    viewclass: "VideoCard"
+    RecycleBoxLayout:
+        default_size: None, dp(220)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        spacing: 50
+        padding: 50, 20
+        orientation: 'vertical'
+
 <MainWindow>:
     id: main_win
     orientation: "vertical"
 
     MDTopAppBar:
+        id: toolbar
         title: "Video Downloader"
 
-    MDBoxLayout:
-        orientation: "vertical"
-        padding: main_win.size[0]/5, main_win.size[1]/4
-        spacing: 20
+    ScreenManager:
+        id: scrn_mngr
 
-        MDBoxLayout:
-            orientation: "horizontal"
+        Screen:
+            id: first_page
+            name: "first_page"
 
-            MDLabel:
-                text: "YouTube URL:"
-                size_hint_x: .4
-                size_hint_y: None
-            MDTextField:
-                id: video_url
-                mode: "round"
-                hint_text: "Video URL"
-                size_hint_y: None
-                helper_text: "URL cannot be empty!"
-                helper_text_mode: "on_error"
-                on_text: self.error = False
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: main_win.size[0]/10, main_win.size[1]/4
+                spacing: 20
 
-        MDBoxLayout:
-            orientation: "horizontal"
+                MDLabel:
+                    text: "Video Downloader"
+                    halign: "center"
+                    font_style: "H3"
+                    bold: True
 
-            MDLabel:
-                text: "Download Path:"
-                size_hint_x: .4
-                size_hint_y: None
-            MDTextField:
-                id: download_path
-                mode: "round"
-                size_hint_y: None
-                hint_text: "Select Path"
-                helper_text: "Please Choose Path"
-                helper_text_mode: "on_error"
-                on_focus:
-                    root.file_manager_open()
+                CustomCard:
+                    size_hint_y: None
+                    height: self.minimum_height
+                    MDTextField:
+                        id: search_input
+                        hint_text: "Songs, Artists..."
+                        icon_right: "magnify"
+                        on_text_validate: app.search(self.text)
 
-        MDBoxLayout:
-            orientation: "horizontal"
-            spacing: 20
+                AnchorLayout:
+                    anchor_x: "center"
+                    MDRaisedButton:
+                        text: "Search"
+                        on_release: app.search(search_input.text)
 
-            MDRaisedButton:
-                text: "Download Video"
-                size_hint_x: .5
-                on_release:
-                    root.download_video()
+        Screen:
+            id: second_page
+            name: "second_page"
 
-            MDRaisedButton:
-                text: "Download Audio"
-                size_hint_x: .5
-                on_release:
-                    root.download_audio()
+            RV:
+                id: rv
 
-        MDRaisedButton:
-            text: "Exit"
-            md_bg_color: 1, 0, 0, 1
-            size_hint_x: 1
-            on_release: app.stop()
+        Screen:
+            id: third_page
+            name: "third_page"
+
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: 50, main_win.size[1]/4
+                spacing: 20
+
+                DetailCard:
+                    id: detail_card
+
+                CustomCard:
+                    orientation: "horizontal"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: 20
+                    padding: 50, 20
+
+                    MDTextField:
+                        id: download_path
+                        size_hint_x: .6
+                        hint_text: "Select Path"
+                        helper_text: "Please Choose Path"
+                        helper_text_mode: "on_error"
+                        disabled: True
+                        on_focus:
+                            root.file_manager_open()
+
+                    AnchorLayout:
+                        anchor_y: "center"
+                        anchor_x: "center"
+                        size_hint_x: .2
+                        MDRaisedButton:
+                            text: "Choose"
+                            size_hint_y: None
+                            on_release:
+                                root.file_manager_open()
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: 20
+                    size_hint_y: None
+
+                    MDRaisedButton:
+                        text: "Download Video"
+                        size_hint_x: .5
+                        on_release:
+                            root.download_video(detail_card.obj)
+
+                    MDRaisedButton:
+                        text: "Download Audio"
+                        size_hint_x: .5
+                        on_release:
+                            root.download_audio(detail_card.obj)
