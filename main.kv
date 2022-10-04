@@ -4,6 +4,17 @@
     style: "elevated"
     elevation: 20
     padding: 50, 10
+    md_bg_color: app.theme_cls.bg_dark
+
+<VideoListView>:
+    text: root.text
+    secondary_text: root.secondary_text
+    tertiary_text: root.tertiary_text
+    on_release:
+        app.goto_download(root.obj)
+
+    ImageLeftWidget:
+        source: root.img
 
 <DetailCard>:
     padding: 50, 50
@@ -68,14 +79,14 @@
             app.goto_download(root.obj)
 
 <RV>:
-    viewclass: "VideoCard"
+    viewclass: "VideoListView"
     RecycleBoxLayout:
-        default_size: None, dp(220)
+        default_size: None, None
         default_size_hint: 1, None
         size_hint_y: None
         height: self.minimum_height
-        spacing: 50
-        padding: 50, 20
+        #spacing: 0
+        padding: 50, 50
         orientation: 'vertical'
 
 <MainWindow>:
@@ -110,6 +121,9 @@
                     MDTextField:
                         id: search_input
                         hint_text: "Songs, Artists..."
+                        #line_color_normal: 0, 0, 0, .5
+                        #hint_text_color_normal: 0, 0, 0, .5
+                        #icon_right_color_normal: 0, 0, 0, .5
                         icon_right: "magnify"
                         on_text_validate: app.search(self.text)
 
@@ -123,8 +137,19 @@
             id: second_page
             name: "second_page"
 
-            RV:
-                id: rv
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: 20
+
+                RV:
+                    id: rv
+
+                MDFlatButton:
+                    text: "Show more"
+                    size_hint_x: 1
+                    md_bg_color: 0, 0, 0, .25
+                    on_release:
+                        root.show_more()
 
         Screen:
             id: third_page
@@ -151,7 +176,6 @@
                         hint_text: "Select Path"
                         helper_text: "Please Choose Path"
                         helper_text_mode: "on_error"
-                        disabled: True
                         on_focus:
                             root.file_manager_open()
 

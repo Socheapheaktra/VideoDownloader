@@ -4,6 +4,7 @@ import subprocess
 import os
 import shutil
 import http.client
+import json
 
 from pytube import YouTube, Search
 from functools import partial
@@ -16,12 +17,14 @@ from kivy.uix.recycleview import RecycleView
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
+from kivymd.toast import toast
 from kivymd.uix.behaviors import FakeRectangularElevationBehavior
-from kivymd.uix.button import MDIconButton, MDRaisedButton
+from kivymd.uix.button import MDIconButton, MDRaisedButton, MDFlatButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.filemanager import MDFileManager
-from kivymd.app import MDApp
+from kivymd.uix.list import ThreeLineAvatarListItem
 
+from kivymd.app import MDApp
 
 # width = 288.96 * 2
 # height = 618.24 * 2
@@ -61,30 +64,36 @@ class VideoCard(CustomCard):
     views = StringProperty()
     publish_date = StringProperty()
 
+class VideoListView(ThreeLineAvatarListItem):
+    obj = ObjectProperty()
+    text = StringProperty()
+    secondary_text = StringProperty()
+    tertiary_text = StringProperty()
+    img = StringProperty()
+
 class RV(RecycleView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cycles = ListProperty()
 
+        self.loading_dialog = MDDialog(
+            title="Loading...!",
+            text="Please wait..."
+        )
+
     def add_data(self, *largs):
+        self.loading_dialog.open()
         try:
             cycle = self.cycles.pop(0)
         except IndexError:  # No more cycle
+            self.close_loading_dialog()
+            toast("Loading Complete")
             return
         self.add(obj=cycle)
 
-        Clock.schedule_once(self.add_data, 1.5)
-        # self.data = [
-        #     {
-        #         "obj": data,
-        #         "image_url": f"{data.thumbnail_url}",
-        #         "title": f"{data.title}",
-        #         "author": f"{data.author}",
-        #         "views": f"{data.views:,}",
-        #         "publish_date": f"{data.publish_date.strftime('%Y-%m-%d')}"
-        #     }
-        #     for data in list_data
-        # ]
+        Clock.schedule_once(self.add_data, .1)
+        # for data in list_data:
+        #     self.add(obj=data)
 
     def on_add(self, list_data):
         self.cycles = list_data
@@ -92,22 +101,35 @@ class RV(RecycleView):
 
         self.add_data()
 
+    def add_more(self, list_data):
+        self.cycles = list_data
+
+        self.add_data()
+
     def add(self, obj):
         data = {
+            "text": f"{obj.title}",
+            "secondary_text": f"{obj.views:,}",
+            "tertiary_text": f"{obj.publish_date.strftime('%Y-%m-%d')}",
+            "img": f"{obj.thumbnail_url}",
             "obj": obj,
-            "image_url": f"{obj.thumbnail_url}",
-            "title": f"{obj.title}",
-            "author": f"{obj.author}",
-            "views": f"{obj.views:,}",
-            "publish_date": f"{obj.publish_date.strftime('%Y-%m-%d')}"
+            # "image_url": f"{obj.thumbnail_url}",
+            # "title": f"{obj.title}",
+            # "author": f"{obj.author}",
+            # "views": f"{obj.views:,}",
+            # "publish_date": f"{obj.publish_date.strftime('%Y-%m-%d')}"
         }
         self.data.append(data)
+
+    def close_loading_dialog(self, *args):
+        self.loading_dialog.dismiss(force=True)
 
 class MainWindow(MDBoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.path = None
         self.dialog = MDDialog()
+        self.search_obj = None
         self.progress = MDDialog(
             title="Downloading....!",
         )
@@ -118,7 +140,6 @@ class MainWindow(MDBoxLayout):
         self.file_manager = MDFileManager(
             exit_manager=self.exit_manager,
             select_path=self.select_path,
-            preview=True,
         )
 
         Clock.schedule_once(lambda x: self.check_network(), 1)
@@ -183,7 +204,7 @@ class MainWindow(MDBoxLayout):
 
     def search_process(self, title, *largs):
         try:
-            search_obj = Search(title)
+            self.search_obj = Search(title)
         except Exception as e:
             self.dialog = MDDialog(
                 title="Oh No!",
@@ -198,8 +219,14 @@ class MainWindow(MDBoxLayout):
             self.dialog.open()
         else:
             self.close_process()
-            result = search_obj.results
+            result = self.search_obj.results
+            # self.ids.rv.add_data(list_data=result)
             self.ids.rv.on_add(list_data=result)
+
+    def show_more(self):
+        self.search_obj.get_next_results()
+        result = self.search_obj.results
+        self.ids.rv.add_more(list_data=result[-17:])
 
     def add_detail(self, obj):
         self.ids.detail_card.obj = obj
@@ -210,10 +237,22 @@ class MainWindow(MDBoxLayout):
         self.ids.detail_card.publish_date = f"{obj.publish_date.strftime('%Y-%m-%d')}"
 
     def file_manager_open(self):
-        # self.file_manager.show('/')  # output manager to the screen
+        # self.file_manager.show(os.path.abspath(os.getcwd()))  # output manager to the screen
         self.file_manager.show(primary_ext_storage)
 
     def select_path(self, path):
+        """ Write update in Config File """
+        with open("config.json", "r") as file:
+            config_obj = json.load(file)
+
+        config_obj['Config']['Path']['download'] = path
+        json_object = json.dumps(config_obj, indent=4)
+
+        with open("config.json", "w") as file:
+            file.write(json_object)
+
+        """ ============================= """
+
         self.path = path
         self.ids.download_path.text = path
         self.exit_manager()
@@ -411,11 +450,59 @@ class MainApp(MDApp):
         self.title = "Video Downloader"
         self.dialog = None
 
+    def change_theme(self):
+        with open("config.json", "r") as file:
+            config_obj = json.load(file)
+        if config_obj['Config']['Theme']['style'] == "Dark":
+            self.theme_cls.theme_style = "Light"
+            self.theme_cls.primary_palette = "Indigo"
+            self.root.ids.toolbar.right_action_items[0] = [
+                'white-balance-sunny', lambda x: self.change_theme()
+            ]
+            config_obj['Config']['Theme']['style'] = "Light"
+            json_obj = json.dumps(config_obj, indent=4)
+            with open("config.json", "w") as file:
+                file.write(json_obj)
+        else:
+            self.theme_cls.theme_style = "Dark"
+            self.theme_cls.primary_palette = "BlueGray"
+            self.root.ids.toolbar.right_action_items[0] = [
+                'moon-waning-crescent', lambda x: self.change_theme()
+            ]
+            config_obj['Config']['Theme']['style'] = "Dark"
+            json_obj = json.dumps(config_obj, indent=4)
+            with open("config.json", "w") as file:
+                file.write(json_obj)
+
+    def on_start(self):
+        with open("config.json", "r") as file:
+            config_obj = json.load(file)
+
+        if config_obj['Config']['Theme']['style'] == "Dark":
+            self.theme_cls.theme_style = config_obj['Config']['Theme']['style']
+            self.theme_cls.primary_palette = "BlueGray"
+            self.root.ids.toolbar.right_action_items = [
+                ['moon-waning-crescent', lambda x: self.change_theme()]
+            ]
+        else:
+            self.theme_cls.theme_style = config_obj['Config']['Theme']['style']
+            self.theme_cls.primary_palette = "Indigo"
+            self.root.ids.toolbar.right_action_items = [
+                ['white-balance-sunny', lambda x: self.change_theme()]
+            ]
+
+        if config_obj['Config']['Path']['download'] == "":
+            pass
+        else:
+            self.root.path = config_obj['Config']['Path']['download']
+            self.root.ids.download_path.text = config_obj['Config']['Path']['download']
+
     def close_dialog(self, *args):
         self.dialog.dismiss(force=True)
 
     def build(self):
-        self.theme_cls.primary_palette = "Indigo"
+        self.theme_cls.theme_style_switch_animation = True
+        self.theme_cls.theme_style_switch_animation_duration = 2
         return MainWindow()
 
     def search(self, title):
@@ -444,9 +531,9 @@ class MainApp(MDApp):
         if self.root.ids.scrn_mngr.current == "second_page":
             self.root.ids.scrn_mngr.transition.direction = "right"
             self.root.ids.scrn_mngr.current = "first_page"
-            self.root.ids.toolbar.right_action_items = [
+            self.root.ids.toolbar.right_action_items.append(
                 ['arrow-right-bold', lambda x: self.goto_search()]
-            ]
+            )
             self.root.ids.toolbar.left_action_items = []
 
     def goto_search(self):
@@ -456,13 +543,17 @@ class MainApp(MDApp):
             self.root.ids.toolbar.left_action_items = [
                 ['arrow-left-bold', lambda x: self.goto_main()]
             ]
-            self.root.ids.toolbar.right_action_items = []
         else:
             self.root.ids.scrn_mngr.transition.direction = "right"
             self.root.ids.scrn_mngr.current = "second_page"
             self.root.ids.toolbar.left_action_items = [
                 ['arrow-left-bold', lambda x: self.goto_main()]
             ]
+
+        if len(self.root.ids.toolbar.right_action_items) > 1:
+            self.root.ids.toolbar.right_action_items.pop()
+        else:
+            pass
 
     def goto_download(self, obj):
         try:
